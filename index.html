@@ -177,29 +177,38 @@
     }
 
     function nextWord() {
-      if (currentWordIndex < words.length - 1) {
-        currentWordIndex++;
-        correctWord = words[currentWordIndex];
-        document.getElementById("word").textContent = `${correctWord.hebrew} (${correctWord.latin})`;
-        document.getElementById("message").textContent = "Start recording the next word!";
-      } else {
-        document.getElementById("message").textContent = "You've finished all the words! Well done!";
-        document.getElementById("recordButton").style.display = "none"; // הסתרת כפתור ההקלטה
-        document.getElementById("restartButton").style.display = "block"; // הצגת כפתור האתחול
-      }
-    }
+  if (currentWordIndex < words.length - 1) {
+    currentWordIndex++;
+    correctWord = words[currentWordIndex];
+    document.getElementById("word").textContent = `${correctWord.hebrew} (${correctWord.latin})`;
+    document.getElementById("message").textContent = "Start recording the next word!";
 
-    function restartGame() {
-      score = 0;
-      currentWordIndex = 0;
-      shuffleWords();
-      correctWord = words[currentWordIndex];
-      document.getElementById("score").textContent = "Your score: " + score;
-      document.getElementById("message").textContent = "";
-      document.getElementById("word").textContent = `${correctWord.hebrew} (${correctWord.latin})`;
-      document.getElementById("recordButton").style.display = "block"; // הצגת כפתור ההקלטה
-      document.getElementById("restartButton").style.display = "none"; // הסתרת כפתור האתחול
-    }
+    // השמעת קובץ ה-mp3 המתאים
+    let audio = new Audio(`${correctWord.latin}.mp3`);
+    audio.play();
+
+  } else {
+    document.getElementById("message").textContent = "You've finished all the words! Well done!";
+    document.getElementById("recordButton").style.display = "none";
+    document.getElementById("restartButton").style.display = "block";
+  }
+}
+
+function restartGame() {
+  score = 0;
+  currentWordIndex = 0;
+  shuffleWords();
+  correctWord = words[currentWordIndex];
+  document.getElementById("score").textContent = "Your score: " + score;
+  document.getElementById("message").textContent = "";
+  document.getElementById("word").textContent = `${correctWord.hebrew} (${correctWord.latin})`;
+  document.getElementById("recordButton").style.display = "block";
+  document.getElementById("restartButton").style.display = "none";
+
+  // השמעת קובץ ה-mp3 של המילה הראשונה
+  let audio = new Audio(`${correctWord.latin}.mp3`);
+  audio.play();
+}
   </script>
 
 </body>
