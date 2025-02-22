@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The pronunciation game</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      height: 100vh;
+      margin: 0;
+      background-color: #f5f5f5;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    h1 {
+      color: black;
+      font-size: 2.5em;
+    }
+
+    #wordDisplay {
+      color: #00bcd4;
+      font-size: 2em;
+      margin-top: 20px;
+    }
+
+    #recordButton, #restartButton {
+      background-color: #9c27b0;
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      font-size: 1.2em;
+      cursor: pointer;
+      margin-top: 20px;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+
+    #recordButton:hover, #restartButton:hover {
+      background-color: #7b1fa2;
+    }
+
+    #message {
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+
+    #score {
+      color: #9c27b0;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Say the word out loud</h1>
+
+  <div id="wordDisplay">The word is: <span id="word">אורז(orez)</span></div>
+  <div id="score">Your score: 0</div>
+  <div id="message"></div>
+  
+  <button id="recordButton">Record the word</button>
+  <button id="restartButton" style="display: none;">restart</button>
+
+  <script>
+    const words = [
+      { hebrew: "אורז", latin: "orez" },
+      { hebrew: "אומלט", latin: "omelet" },
+      { hebrew: "ארנב", latin: "arnav" },
+      { hebrew: "אוגר", latin: "oger" },
+      { hebrew: "אייל", latin: "ayal" },
+      { hebrew: "אריה", latin: "aryeh" },
+      { hebrew: "אדנית", latin: "adnit" },
+      { hebrew: "אורגנית", latin: "organit" },
+      { hebrew: "אנטילופה", latin: "antilope" },
+      { hebrew: "אבטיח", latin: "avatiach" },
+      { hebrew: "ארנק", latin: "arnak" },
+      { hebrew: "אגוזי מלך", latin: "egozei melech" },
+      { hebrew: "אקיטה", latin: "akita" },
+    ];
+    let currentWordIndex = 0;
+    let correctWord;
+    let score = 0;
+
+    // ערבוב המילים (שיהיו ייחודיות)
+    shuffleWords();
+
+    // הצגת המילה הראשונה
+    correctWord = words[currentWordIndex];
+
+    document.getElementById("recordButton").addEventListener("click", startRecording);
+    document.getElementById("restartButton").addEventListener("click", restartGame);
+
+    function shuffleWords() {
+      for (let i = words.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [words[i], words[j]] = [words[j], words[i]]; // החלפה
+      }
+    }
+
+    function startRecording() {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(function(stream) {
+          let mediaRecorder = new MediaRecorder(stream);
+          let audioChunks = [];
+
+          mediaRecorder.ondataavailable = function(event) {
+            audioChunks.push(event.data);
+          };
+
+          mediaRecorder.onstop = function() {
+            let audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            let audioURL = URL.createObjectURL(audioBlob);
+            let audio = new Audio(audioURL);
+            audio.play();
+            checkPronunciation(audioBlob);
+          };
+
+          mediaRecorder.start();
+
+          document.getElementById("message").textContent = "The recording has started, try to pronounce the word";
+          setTimeout(function() {
+            mediaRecorder.stop();
+          }, 5000);
+        })
+        .catch(function(err) {
+          document.getElementById("message").textContent = "There was an issue connecting to the microphone";
+        });
+    }
+
+    function checkPronunciation(audioBlob) {
+      let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'he-IL';
+
+      recognition.onresult = function(event) {
+        let transcript = event.results[0][0].transcript;
+
+        if (isPronunciationCorrect(transcript, correctWord.hebrew)) {
+          document.getElementById("message").textContent = "Correct!";
+          score += 10;
+          document.getElementById("score").textContent = "Your score: " + score;
+          setTimeout(nextWord, 1000);
+        } else {
+          document.getElementById("message").textContent = "Incorrect, The correct word is: " + correctWord.hebrew;
+          setTimeout(nextWord, 2000);
+        }
+      };
+
+      recognition.onerror = function() {
+        document.getElementById("message").textContent = "We couldn't recognize your speech";
+      };
+
+      recognition.start();
+    }
+
+    function isPronunciationCorrect(transcript, correctWord) {
+      const normalizedTranscript = transcript.trim().toLowerCase();
+      const normalizedCorrectWord = correctWord.trim().toLowerCase();
+
+      // תוקן: הוספת התאמות למילים "אורגנית", "אדנית", ו"אומלט"
+      const specialWords = {
+        'organit': ['אורגנית'],
+        'aadnit': ['אדנית'],
+        'omelet': ['אומלט'],
+        'antilope': ['אנטילופה']
+      };
+
+      if (specialWords[normalizedCorrectWord]) {
+        return specialWords[normalizedCorrectWord].includes(normalizedTranscript);
+      }
+
+      return normalizedTranscript.includes(normalizedCorrectWord);
+    }
+
+    function nextWord() {
+      if (currentWordIndex < words.length - 1) {
+        currentWordIndex++;
+        correctWord = words[currentWordIndex];
+        document.getElementById("word").textContent = `${correctWord.hebrew} (${correctWord.latin})`;
+        document.getElementById("message").textContent = "Start recording the next word!";
+      } else {
+        document.getElementById("message").textContent = "You've finished all the words! Well done!";
+        document.getElementById("recordButton").style.display = "none"; // הסתרת כפתור ההקלטה
+        document.getElementById("restartButton").style.display = "block"; // הצגת כפתור האתחול
+      }
+    }
+
+    function restartGame() {
+      score = 0;
+      currentWordIndex = 0;
+      shuffleWords();
+      correctWord = words[currentWordIndex];
+      document.getElementById("score").textContent = "Your score: " + score;
+      document.getElementById("message").textContent = "";
+      document.getElementById("word").textContent = `${correctWord.hebrew} (${correctWord.latin})`;
+      document.getElementById("recordButton").style.display = "block"; // הצגת כפתור ההקלטה
+      document.getElementById("restartButton").style.display = "none"; // הסתרת כפתור האתחול
+    }
+  </script>
+
+</body>
+</html>
